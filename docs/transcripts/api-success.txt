@@ -1,0 +1,29 @@
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:5000/api/tasks
+{"code":200,"data":[],"msg":"ok"}
+
+[HTTP 200]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" -d '{"title":"学习 Flask","done":false}'
+{"code":201,"data":{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":1,"title":"学习 Flask"},"msg":"创建成功"}
+
+[HTTP 201]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" -d '{"title":"写接口文档"}'
+{"code":201,"data":{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":2,"title":"写接口文档"},"msg":"创建成功"}
+
+[HTTP 201]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:5000/api/tasks
+{"code":200,"data":[{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":2,"title":"写接口文档"},{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":1,"title":"学习 Flask"}],"msg":"ok"}
+
+[HTTP 200]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X DELETE http://127.0.0.1:5000/api/tasks/1
+{"code":200,"data":{"id":1},"msg":"删除成功"}
+
+[HTTP 200]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:5000/api/tasks
+{"code":200,"data":[{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":2,"title":"写接口文档"}],"msg":"ok"}
+
+[HTTP 200]

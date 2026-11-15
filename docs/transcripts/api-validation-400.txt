@@ -1,0 +1,19 @@
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" -d '{"done":true}'
+{"code":400,"data":null,"msg":"缺少字段: title"}
+
+[HTTP 400]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" -d '{"title":123}'
+{"code":400,"data":null,"msg":"title 必须是字符串"}
+
+[HTTP 400]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" -d '{"title":"   "}'
+{"code":400,"data":null,"msg":"title 不能为空"}
+
+[HTTP 400]
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:5000/api/tasks
+{"code":200,"data":[{"created_at":"2026-11-15T12:05:47+08:00","done":false,"id":2,"title":"写接口文档"}],"msg":"ok"}
+
+[HTTP 200]

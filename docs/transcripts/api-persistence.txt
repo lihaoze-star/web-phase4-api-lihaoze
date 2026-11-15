@@ -1,0 +1,12 @@
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" -X POST http://127.0.0.1:5001/api/tasks -H "Content-Type: application/json" -d '{"title":"重启服务后还在"}'
+{"code":201,"data":{"created_at":"2026-11-15T12:06:14+08:00","done":false,"id":1,"title":"重启服务后还在"},"msg":"创建成功"}
+
+[HTTP 201]
+
+# 停止服务：Ctrl+C（或结束 python 进程）
+# 重新启动：python app.py
+
+$ curl.exe -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:5001/api/tasks
+{"code":200,"data":[{"created_at":"2026-11-15T12:06:14+08:00","done":false,"id":1,"title":"重启服务后还在"}],"msg":"ok"}
+
+[HTTP 200]
