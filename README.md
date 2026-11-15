@@ -173,19 +173,70 @@ curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:5000/api/tasks
 
 ---
 
+## 流式对话 `/api/chat`
+
+任务 4 的聊天页通过这个接口调 DeepSeek。Key 只从服务端 `.env` 读取，前端只拿到 SSE delta。
+
+1. 复制模板并填写 Key：
+
+   ```powershell
+   Copy-Item .env.example .env
+   notepad .env
+   ```
+
+   ```env
+   LLM_PROVIDER=deepseek
+   LLM_MODEL=deepseek-chat
+   LLM_API_KEY=sk-...
+   MAX_CONTEXT_CHARS=6000
+   ```
+
+   `.env` 已在 `.gitignore` 中，不会提交。
+
+2. 请求：
+
+   ```http
+   POST /api/chat
+   Content-Type: application/json
+
+   {"messages":[{"role":"user","content":"介绍一下 fetch"}]}
+   ```
+
+3. 响应是 `text/event-stream`：
+
+   ```text
+   data: {"delta":"fetch"}
+
+   data: {"delta":" 是"}
+
+   data: {"done":true}
+   ```
+
+   错误也走 SSE：`data: {"error":"API Key 无效或已过期..."}`。
+
+- **系统提示词**：`app.py` 的 `SYSTEM_PROMPT`，限定课程学习助手，不编造、不泄露 Key、不代写整份作业。
+- **上下文截断**：`trim_context()` 从最早的消息开始丢弃，总字符数不超过 `MAX_CONTEXT_CHARS`。
+- **停止生成**：前端 abort 后，生成器在 `GeneratorExit` / 写失败时关闭上游 `requests` 响应。
+- **错误映射**：401 Key 错、402 余额不足、403 无权限、429 限流、超时、连接失败、5xx 都有中文提示。
+
+支持 DeepSeek / 智谱 GLM / 阿里百炼 / 火山方舟的 OpenAI 兼容接口；豆包需要把接入点 ID 填到 `LLM_MODEL`。
+
+---
+
 ## 测试
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-当前结果：**18 个测试全部通过**，覆盖：
+当前结果：**27 个测试全部通过**，覆盖：
 
 - 空列表、创建、查询、修改、删除
 - 缺字段、类型错误、空标题、超长标题、坏 JSON、错误 Content-Type
 - 404 / 405 / 500 都返回 JSON
 - 正常响应、错误响应、OPTIONS 预检都带 CORS 头
 - SQLite 中确实写入了数据
+- 聊天参数校验、mock 流、上下文截断、401 / 429 / 超时中文提示
 
 测试使用独立的 `.tmp/tasks-test.db`，不会污染演示数据。
 
@@ -195,10 +246,11 @@ python -m unittest discover -s tests -v
 
 ```text
 web-phase4-api-lihaoze/
-├── app.py                       # Flask 应用：路由、校验、全局错误处理、CORS、SQLite
-├── requirements.txt             # Flask + gunicorn
+├── app.py                       # Flask：任务 API + 流式聊天 + CORS + SQLite
+├── requirements.txt             # Flask / gunicorn / requests / python-dotenv
 ├── Procfile                     # Render / Railway 启动命令
 ├── render.yaml                  # Render 一键创建 Web Service
+├── .env.example                 # 环境变量模板（真实 .env 已 gitignore）
 ├── README.md
 ├── data/
 │   └── tasks.db                 # 运行时自动生成（已 gitignore）

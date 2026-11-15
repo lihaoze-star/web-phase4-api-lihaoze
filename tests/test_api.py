@@ -169,6 +169,100 @@ class TaskApiTest(unittest.TestCase):
             ).fetchone()
         self.assertEqual(row[0], "落盘任务")
 
+    # ------------------------------------------------------------------
+    # streaming chat
+    # ------------------------------------------------------------------
+
+    def test_chat_requires_messages(self):
+        response = self.client.post("/api/chat", json={})
+        self.assert_envelope(response, 400, 400)
+
+    def test_chat_rejects_bad_role(self):
+        response = self.client.post(
+            "/api/chat",
+            json={"messages": [{"role": "system", "content": "x"}]},
+        )
+        self.assert_envelope(response, 400, 400)
+
+    def test_chat_last_message_must_be_user(self):
+        response = self.client.post(
+            "/api/chat",
+            json={"messages": [{"role": "user", "content": "你好"}, {"role": "assistant", "content": "在"}]},
+        )
+        self.assert_envelope(response, 400, 400)
+
+    def test_chat_mock_stream(self):
+        with patch.dict(os.environ, {"CHAT_MOCK": "1"}, clear=False):
+            response = self.client.post(
+                "/api/chat",
+                json={"messages": [{"role": "user", "content": "用一句话介绍 fetch"}]},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.mimetype.startswith("text/event-stream"))
+        text = response.get_data(as_text=True)
+        self.assertIn('"delta"', text)
+        self.assertIn('"done": true', text)
+
+    def test_chat_without_key_is_readable_json(self):
+        with patch.dict(os.environ, {"CHAT_MOCK": "0", "LLM_API_KEY": ""}, clear=False):
+            response = self.client.post(
+                "/api/chat",
+                json={"messages": [{"role": "user", "content": "你好"}]},
+            )
+        body = self.assert_envelope(response, 500, 500)
+        self.assertIn("LLM_API_KEY", body["msg"])
+
+    def test_trim_context_drops_oldest(self):
+        messages = [
+            {"role": "user", "content": "u" * 80},
+            {"role": "assistant", "content": "a" * 80},
+            {"role": "user", "content": "v" * 80},
+            {"role": "assistant", "content": "b" * 80},
+            {"role": "user", "content": "最新的问题"},
+        ]
+        kept = api.trim_context(messages, 200)
+        self.assertLessEqual(sum(len(item["content"]) for item in kept), 200)
+        self.assertEqual(kept[0]["role"], "user")
+        self.assertEqual(kept[-1]["content"], "最新的问题")
+
+    def test_chat_401_is_readable(self):
+        class FakeResponse:
+            status_code = 401
+            def close(self):
+                pass
+
+        with patch.dict(os.environ, {"CHAT_MOCK": "0", "LLM_API_KEY": "test", "LLM_MODEL": "test"}, clear=False):
+            with patch.object(api.requests, "post", return_value=FakeResponse()):
+                response = self.client.post(
+                    "/api/chat",
+                    json={"messages": [{"role": "user", "content": "你好"}]},
+                )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("API Key 无效", response.get_data(as_text=True))
+
+    def test_chat_429_is_readable(self):
+        class FakeResponse:
+            status_code = 429
+            def close(self):
+                pass
+
+        with patch.dict(os.environ, {"CHAT_MOCK": "0", "LLM_API_KEY": "test", "LLM_MODEL": "test"}, clear=False):
+            with patch.object(api.requests, "post", return_value=FakeResponse()):
+                response = self.client.post(
+                    "/api/chat",
+                    json={"messages": [{"role": "user", "content": "你好"}]},
+                )
+        self.assertIn("429", response.get_data(as_text=True))
+
+    def test_chat_timeout_is_readable(self):
+        with patch.dict(os.environ, {"CHAT_MOCK": "0", "LLM_API_KEY": "test", "LLM_MODEL": "test"}, clear=False):
+            with patch.object(api.requests, "post", side_effect=api.requests.Timeout()):
+                response = self.client.post(
+                    "/api/chat",
+                    json={"messages": [{"role": "user", "content": "你好"}]},
+                )
+        self.assertIn("超时", response.get_data(as_text=True))
+
 
 if __name__ == "__main__":
     unittest.main()

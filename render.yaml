@@ -9,3 +9,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.6"
+      - key: LLM_PROVIDER
+        value: deepseek
+      - key: LLM_MODEL
+        value: deepseek-chat
+      - key: MAX_CONTEXT_CHARS
+        value: "6000"
+      - key: LLM_API_KEY
+        sync: false
