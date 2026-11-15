@@ -23,6 +23,17 @@
 
 ---
 
+## 接口总表
+
+| 方法 | 路径 | 参数 | 返回示例 |
+| --- | --- | --- | --- |
+| `GET` | `/api/tasks` | 无 | `{"code":200,"data":[{"id":1,"title":"学习 Flask","done":false,"created_at":"..."}],"msg":"ok"}` |
+| `POST` | `/api/tasks` | body：`title`（string，必填，1–80 字）、`done`（boolean，可选） | `{"code":201,"data":{"id":1,"title":"学习 Flask","done":false,"created_at":"..."},"msg":"创建成功"}` |
+| `PUT` | `/api/tasks/{id}` | path：`id`（int）；body：`title` / `done` 至少一个 | `{"code":200,"data":{"id":1,"title":"新标题","done":true,"created_at":"..."},"msg":"更新成功"}` |
+| `DELETE` | `/api/tasks/{id}` | path：`id`（int） | `{"code":200,"data":{"id":1},"msg":"删除成功"}` |
+
+---
+
 ## 1. 获取任务列表
 
 - **方法**：`GET`
