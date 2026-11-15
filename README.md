@@ -223,13 +223,35 @@ curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:5000/api/tasks
 
 ---
 
+## 工具调用
+
+对话接口还挂了两个工具，直接操作任务 API 的同一个 SQLite 库：
+
+| 工具 | 作用 | 参数 |
+| --- | --- | --- |
+| `add_item` | 新增任务，执行 `INSERT INTO tasks` | `title`（必填，1-80 字）、`done`（可选） |
+| `query_items` | 按条件查询任务 | `status`（`all`/`todo`/`done`）、`keyword`、`limit` |
+
+流程：模型返回 `tool_calls` → Flask 执行 SQLite → 结果以 `role=tool` 回填 → 模型用自然语言总结。工具失败会作为结果回给模型，不会中断整轮对话。
+
+前端通过 SSE 事件显示工具日志：
+
+```text
+data: {"tool_call":{"name":"add_item","arguments":{"title":"明天交实验报告"},"result":{"ok":true,"item":{...}}}}
+```
+
+完整链路、失败案例和前后数据截图见：
+<https://github.com/lihaoze-star/web-phase4-lihaoze/blob/main/docs/task5.md>
+
+---
+
 ## 测试
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-当前结果：**27 个测试全部通过**，覆盖：
+当前结果：**31 个测试全部通过**，覆盖：
 
 - 空列表、创建、查询、修改、删除
 - 缺字段、类型错误、空标题、超长标题、坏 JSON、错误 Content-Type
@@ -237,6 +259,7 @@ python -m unittest discover -s tests -v
 - 正常响应、错误响应、OPTIONS 预检都带 CORS 头
 - SQLite 中确实写入了数据
 - 聊天参数校验、mock 流、上下文截断、401 / 429 / 超时中文提示
+- `add_item` 写库、`query_items` 过滤、工具参数校验
 
 测试使用独立的 `.tmp/tasks-test.db`，不会污染演示数据。
 
@@ -264,7 +287,7 @@ web-phase4-api-lihaoze/
 │   ├── render_terminal.py       # 把记录渲染成终端样式 HTML
 │   └── capture_terminal.mjs     # 用 Edge 截图
 ├── tests/
-│   └── test_api.py              # 18 个 unittest
+│   └── test_api.py              # 31 个 unittest
 └── .gitignore
 ```
 

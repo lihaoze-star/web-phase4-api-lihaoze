@@ -263,6 +263,42 @@ class TaskApiTest(unittest.TestCase):
                 )
         self.assertIn("超时", response.get_data(as_text=True))
 
+    # ------------------------------------------------------------------
+    # tools
+    # ------------------------------------------------------------------
+
+    def test_add_item_tool_writes_database(self):
+        result = api.execute_tool("add_item", {"title": "明天交实验报告"})
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["item"]["title"], "明天交实验报告")
+        listed = self.client.get("/api/tasks").get_json()["data"]
+        self.assertEqual(len(listed), 1)
+        self.assertEqual(listed[0]["title"], "明天交实验报告")
+
+    def test_query_items_tool_filters(self):
+        api.execute_tool("add_item", {"title": "写实验报告"})
+        api.execute_tool("add_item", {"title": "复习 CORS", "done": True})
+        result = api.execute_tool(
+            "query_items", {"status": "todo", "keyword": "实验"}
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["count"], 1)
+        self.assertEqual(result["items"][0]["title"], "写实验报告")
+
+    def test_add_item_tool_validation(self):
+        missing = api.execute_tool("add_item", {})
+        self.assertFalse(missing["ok"])
+        self.assertIn("title", missing["error"])
+        bad_done = api.execute_tool("add_item", {"title": "x", "done": "yes"})
+        self.assertFalse(bad_done["ok"])
+
+    def test_query_items_tool_validation(self):
+        bad_status = api.execute_tool("query_items", {"status": "未完成"})
+        self.assertFalse(bad_status["ok"])
+        self.assertIn("status", bad_status["error"])
+        unknown = api.execute_tool("delete_item", {})
+        self.assertFalse(unknown["ok"])
+
 
 if __name__ == "__main__":
     unittest.main()
