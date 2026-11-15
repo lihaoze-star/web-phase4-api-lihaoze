@@ -1,377 +1,225 @@
-# web-phase4-api-lihaoze · Task API
+# web-phase4-lihaoze · 第一阶段作品集
 
-任务 2：用 **Flask + SQLite** 写 3 个接口，并把数据落盘。
+用原生 **HTML / CSS / JavaScript** 完成的第一阶段作业：一个个人主页、一页项目档案，以及一个认真设计的 404。
 
-- **技术栈**：Python 3.10+ / Flask 3.1.3 / SQLite（Python 标准库 `sqlite3`）
-- **接口数量**：3 个必做（GET / POST / DELETE）+ 1 个加分项（PUT）
-- **统一返回**：`{ "code", "data", "msg" }`，错误也返回 JSON
-- **数据文件**：`data/tasks.db`，关掉服务再启动数据仍在
-- **仓库**：<https://github.com/lihaoze-star/web-phase4-api-lihaoze>
-- **接口文档**：[docs/api.md](docs/api.md)
+没有框架、没有构建步骤、没有 npm 依赖，所有页面都可以直接阅读源代码。
 
----
+- **选题**：任务 1 · 选题一「个人主页」（含项目展示页与 404）
+- **仓库**：<https://github.com/lihaoze-star/web-phase4-lihaoze>
+- **线上地址**：<https://lihaoze-star.github.io/web-phase4-lihaoze/>
+- **技术限制**：0 框架 / 0 构建 / 0 依赖，仅原生 HTML、CSS、JavaScript
 
-## 快速启动
+> **任务 3**：前后端联调页 [tasks.html](https://lihaoze-star.github.io/web-phase4-lihaoze/tasks.html)，接入任务 2 的 Flask + SQLite 接口；三种状态截图与 CORS 记录见 [docs/task3.md](docs/task3.md)、[docs/cors-record.md](docs/cors-record.md)。
 
-需要 Python 3.10 或更高版本，不需要 Node、不需要数据库服务。
+> **任务 4**：流式对话页 [chat.html](https://lihaoze-star.github.io/web-phase4-lihaoze/chat.html)，Flask 转发 DeepSeek；说明、录屏和 `.env` 证明见 [docs/task4.md](docs/task4.md)。
 
-```bash
-cd web-phase4-api-lihaoze
-
-# 1. 创建虚拟环境
-python -m venv .venv
-
-# Windows PowerShell
-.venv\Scripts\Activate.ps1
-# macOS / Linux
-# source .venv/bin/activate
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 启动
-python app.py
-```
-
-看到下面的输出就说明启动成功：
-
-```text
- * Running on http://127.0.0.1:5000
-```
-
-打开 <http://127.0.0.1:5000/api/tasks>，第一次会得到：
-
-```json
-{"code":200,"data":[],"msg":"ok"}
-```
-
-> 端口被占用时可以用 `PORT=5001 python app.py`（Windows PowerShell 用 `$env:PORT=5001; python app.py`）。
-> 首次启动会自动创建 `data/tasks.db` 和 `tasks` 表，不需要手动建库。
-> Windows PowerShell 里建议写 `curl.exe`，避免 `curl` 被解析成 `Invoke-WebRequest`；macOS / Linux 用 `curl` 即可。
+> **任务 5**：在对话页接入 `add_item` / `query_items` 工具，模型可以直接操作任务清单；完整链路、失败案例和前后数据见 [docs/task5.md](docs/task5.md)。
 
 ---
 
-## 接口一览
+## 预览
 
-| 方法 | 路径 | 说明 | 成功状态码 |
-| --- | --- | --- | --- |
-| `GET` | `/api/tasks` | 获取任务列表 | 200 |
-| `POST` | `/api/tasks` | 新增任务 | 201 |
-| `PUT` | `/api/tasks/{id}` | 修改任务（加分项） | 200 |
-| `DELETE` | `/api/tasks/{id}` | 删除任务 | 200 |
+### 电脑端 · 1440px
 
-每个接口的参数、返回示例和错误说明见 **[docs/api.md](docs/api.md)**。
+![电脑端首页](docs/screenshots/desktop-home-viewport.png)
 
-统一返回结构：
+[查看首页完整长图](docs/screenshots/desktop-home.png) · [查看项目档案完整长图](docs/screenshots/desktop-project.png)
 
-```json
-{
-  "code": 200,
-  "data": {},
-  "msg": "ok"
-}
-```
+### 手机端 · 375px
 
-- `code` 与 HTTP 状态码一致。
-- `data` 成功时是业务数据，失败时是 `null`。
-- `msg` 失败时直接说明原因，前端可以展示。
+![手机端首页](docs/screenshots/mobile-home-viewport.png)
+
+[查看首页完整长图](docs/screenshots/mobile-home.png) · [查看项目档案完整长图](docs/screenshots/mobile-project.png) · [手机端菜单](docs/screenshots/mobile-menu.png)
+
+### 404 与交互
+
+| 404（电脑端） | 404（手机端） |
+| --- | --- |
+| ![404 页面](docs/screenshots/404.png) | ![手机端 404](docs/screenshots/404-mobile.png) |
+
+![拾光专注计时器](docs/screenshots/desktop-timer.png)
 
 ---
 
-## 验收截图
+## 页面与交互
 
-### 1. 三个接口依次调通（GET / POST / DELETE）
-
-![三个接口联调](docs/screenshots/api-success.png)
-
-### 2. 故意少传字段，返回 400 而不是 500
-
-![参数校验 400](docs/screenshots/api-validation-400.png)
-
-覆盖的情况：缺少 `title`、`title` 类型错误、`title` 只有空格。三次都是 400，最后一条 `GET` 仍是 200，说明服务没有崩。
-
-### 3. 数据落盘：停止服务、重新启动，数据还在
-
-![重启后数据仍在](docs/screenshots/api-persistence.png)
-
-截图里的两次请求来自两个真实的 Python 进程：第一次进程创建任务后被终止，第二次进程启动后仍能读到同一条数据。
-
-原始 curl 输出保存在：
-
-- [docs/transcripts/api-success.txt](docs/transcripts/api-success.txt)
-- [docs/transcripts/api-validation-400.txt](docs/transcripts/api-validation-400.txt)
-- [docs/transcripts/api-persistence.txt](docs/transcripts/api-persistence.txt)
-
-> 截图是用真实的 curl 输出渲染的终端样式图（原始文本在上面），不是手写结果。
-
----
-
-## 参数校验与错误处理
-
-校验在写库之前完成，任何不合法的请求都不会产生半条数据：
-
-- 请求体不是 JSON → 400 `请求体必须是合法的 JSON 对象`
-- `Content-Type` 不是 `application/json` → 400
-- 缺少 `title` → 400 `缺少字段: title`
-- `title` 不是字符串 / 为空 / 超过 80 字 → 400
-- `done` 不是布尔值 → 400 `done 必须是布尔值 true/false`
-- 删除或修改不存在的任务 → 404 `任务 999 不存在`
-- 路由不存在 → 404 `接口不存在`
-- 方法不允许 → 405 `请求方法不允许`
-- 未捕获异常 → 500 `服务器内部错误`，不返回 HTML 堆栈
-
-全局错误处理在 `app.py` 的 `errorhandler` 中统一收口，因此浏览器直接访问不存在的路径也不会看到 Flask 默认的 HTML 报错页。
-
----
-
-## 数据落盘
-
-- 默认数据库：`data/tasks.db`（SQLite 单文件）。
-- 建表在 `app.py` 的 `init_db()` 中，使用 `CREATE TABLE IF NOT EXISTS`，重复启动不会丢数据。
-- 每次请求使用独立连接，写操作在 `with connection:` 事务中提交。
-
-手动验证持久化（PowerShell）：
-
-```powershell
-# 1. 创建一条
-'{"title":"重启后还在"}' | curl.exe -s -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" --data-binary "@-"
-
-# 2. Ctrl+C 停止服务，再执行 python app.py
-
-# 3. 再查一次，刚才的数据还在
-curl.exe -s http://127.0.0.1:5000/api/tasks
-```
-
-> Git Bash / macOS / Linux 可以把 `'{"title":"重启后还在"}' | curl.exe ... --data-binary "@-"` 换成常见的 `curl -s -X POST ... -d '{"title":"重启后还在"}'`。
-
-想清空数据时，停止服务后删除 `data/tasks.db`，再启动即可。
-
----
-
-## CORS
-
-任务 3 的前端和 API 不在同一个源，所以 Flask 在 `after_request` 里统一加响应头：
-
-```text
-Access-Control-Allow-Origin: <请求的 Origin>
-Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-Access-Control-Allow-Headers: Content-Type
-Access-Control-Max-Age: 86400
-Vary: Origin
-```
-
-`OPTIONS` 预检由 Flask 自动处理，`after_request` 同样会给预检响应加头。错误响应也会带上这些头，避免 GET 修好了、POST 又失败。
-
-验证：
-
-```bash
-curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:5000/api/tasks
-```
-
-前端任务页与完整的 CORS 报错记录：
-<https://github.com/lihaoze-star/web-phase4-lihaoze/blob/main/docs/cors-record.md>
-
----
-
-## 流式对话 `/api/chat`
-
-任务 4 的聊天页通过这个接口调 DeepSeek。Key 只从服务端 `.env` 读取，前端只拿到 SSE delta。
-
-1. 复制模板并填写 Key：
-
-   ```powershell
-   Copy-Item .env.example .env
-   notepad .env
-   ```
-
-   ```env
-   LLM_PROVIDER=deepseek
-   LLM_MODEL=deepseek-chat
-   LLM_API_KEY=sk-...
-   MAX_CONTEXT_CHARS=6000
-   ```
-
-   `.env` 已在 `.gitignore` 中，不会提交。
-
-2. 请求：
-
-   ```http
-   POST /api/chat
-   Content-Type: application/json
-
-   {"messages":[{"role":"user","content":"介绍一下 fetch"}]}
-   ```
-
-3. 响应是 `text/event-stream`：
-
-   ```text
-   data: {"delta":"fetch"}
-
-   data: {"delta":" 是"}
-
-   data: {"done":true}
-   ```
-
-   错误也走 SSE：`data: {"error":"API Key 无效或已过期..."}`。
-
-> 线上环境用的 localhost.run 免费隧道偶尔不转发 `OPTIONS` 预检，所以前端聊天用 `Content-Type: text/plain` 发送 JSON（简单请求，不触发预检）；`read_chat_messages()` 同时接受 `application/json` 和 `text/plain`，校验逻辑不变。
-
-- **系统提示词**：`app.py` 的 `SYSTEM_PROMPT`，限定课程学习助手，不编造、不泄露 Key、不代写整份作业。
-- **上下文截断**：`trim_context()` 从最早的消息开始丢弃，总字符数不超过 `MAX_CONTEXT_CHARS`。
-- **停止生成**：前端 abort 后，生成器在 `GeneratorExit` / 写失败时关闭上游 `requests` 响应。
-- **错误映射**：401 Key 错、402 余额不足、403 无权限、429 限流、超时、连接失败、5xx 都有中文提示。
-
-支持 DeepSeek / 智谱 GLM / 阿里百炼 / 火山方舟的 OpenAI 兼容接口；豆包需要把接入点 ID 填到 `LLM_MODEL`。
-
----
-
-## 工具调用
-
-对话接口还挂了两个工具，直接操作任务 API 的同一个 SQLite 库：
-
-| 工具 | 作用 | 参数 |
+| 页面 | 内容 | 交互 |
 | --- | --- | --- |
-| `add_item` | 新增任务，执行 `INSERT INTO tasks` | `title`（必填，1-80 字）、`done`（可选） |
-| `query_items` | 按条件查询任务 | `status`（`all`/`todo`/`done`）、`keyword`、`limit` |
+| `index.html` | 自我介绍、技能栈、第一阶段项目卡片、联系方式 | 项目筛选、移动端菜单、`fetch` 更新「现在」卡片 |
+| `project.html` | 三个项目的简介、封面、拆解与复盘 | 吸顶项目目录（`IntersectionObserver`）、可运行的 25/5 分钟专注计时器 |
+| `404.html` | 自定义错误页，显示请求路径并给出回首页入口 | 读取 `location.pathname` 显示走丢的地址 |
 
-流程：模型返回 `tool_calls` → Flask 执行 SQLite → 结果以 `role=tool` 回填 → 模型用自然语言总结。工具失败会作为结果回给模型，不会中断整轮对话。
+四个 JS 交互都不依赖 CSS `:hover`：
 
-前端通过 SSE 事件显示工具日志：
-
-```text
-data: {"tool_call":{"name":"add_item","arguments":{"title":"明天交实验报告"},"result":{"ok":true,"item":{...}}}}
-```
-
-完整链路、失败案例和前后数据截图见：
-<https://github.com/lihaoze-star/web-phase4-lihaoze/blob/main/docs/task5.md>
+1. **项目筛选**：`index.html` 的三个筛选按钮，按 `data-category` 过滤卡片，并更新可见数量。
+2. **移动端菜单**：`aria-expanded`、焦点管理、Esc 关闭、Tab 焦点循环。
+3. **专注计时器**：开始 / 暂停 / 继续 / 重置、25 与 5 分钟切换、SVG 圆环进度。
+4. **一次真实的 `fetch`**：「现在」卡片从 `data/now.json` 读取内容，失败时保留静态回退，不产生控制台报错。
 
 ---
 
-## 测试
+## 本地打开
+
+需要 Python 3（不需要安装任何依赖）：
 
 ```bash
-python -m unittest discover -s tests -v
+cd web-phase4-lihaoze
+python serve.py
 ```
 
-当前结果：**32 个测试全部通过**，覆盖：
+然后打开 <http://127.0.0.1:8000/>。
 
-- 空列表、创建、查询、修改、删除
-- 缺字段、类型错误、空标题、超长标题、坏 JSON、错误 Content-Type
-- 404 / 405 / 500 都返回 JSON
-- 正常响应、错误响应、OPTIONS 预检都带 CORS 头
-- SQLite 中确实写入了数据
-- 聊天参数校验、mock 流、上下文截断、401 / 429 / 超时中文提示
-- `add_item` 写库、`query_items` 过滤、工具参数校验
-
-测试使用独立的 `.tmp/tasks-test.db`，不会污染演示数据。
+> 不建议直接双击 `index.html`。`file://` 下浏览器会拦截 `fetch("data/now.json")`，自定义 404 也不会生效。
+> 如果只想看页面，`python -m http.server 8000` 也可以，但它不会返回自定义 404 页。
 
 ---
 
 ## 目录结构
 
 ```text
-web-phase4-api-lihaoze/
-├── app.py                       # Flask：任务 API + 流式聊天 + CORS + SQLite
-├── requirements.txt             # Flask / gunicorn / requests / python-dotenv
-├── Procfile                     # Render / Railway 启动命令
-├── render.yaml                  # Render 一键创建 Web Service
-├── .env.example                 # 环境变量模板（真实 .env 已 gitignore）
-├── README.md
+web-phase4-lihaoze/
+├── index.html               # 个人主页
+├── project.html             # 项目档案
+├── 404.html                 # 自定义错误页
+├── css/
+│   └── style.css            # 全部样式与响应式断点
+├── js/
+│   ├── main.js              # 菜单、筛选、fetch、时钟
+│   └── project.js           # 吸顶目录、专注计时器
 ├── data/
-│   └── tasks.db                 # 运行时自动生成（已 gitignore）
+│   └── now.json             # 首页「现在」卡片的数据源
+├── assets/
+│   ├── favicon.svg
+│   └── img/                 # 压缩后的 WebP 封面（单张 < 300 KB）
 ├── docs/
-│   ├── api.md                   # 接口文档（方法 / 路径 / 参数 / 返回示例）
-│   ├── transcripts/             # 原始 curl 输出
-│   └── screenshots/             # 验收截图
+│   ├── network-record.md    # 抓包记录（3 条核心请求 + 404）
+│   ├── network-capture.json # 原始网络事件
+│   └── screenshots/         # 电脑端 / 手机端截图
 ├── scripts/
-│   ├── make_transcripts.py      # 生成三个接口 + 400 的真实 curl 记录
-│   ├── persistence_check.py     # 自动完成“启动 → 写入 → 重启 → 再读”
-│   ├── render_terminal.py       # 把记录渲染成终端样式 HTML
-│   └── capture_terminal.mjs     # 用 Edge 截图
-├── tests/
-│   └── test_api.py              # 32 个 unittest
-└── .gitignore
+│   ├── capture.mjs          # 可选：用 CDP 重新生成截图与抓包记录
+│   └── make_images.py       # 可选：生成项目封面
+├── serve.py                 # 本地静态服务器（带自定义 404）
+└── README.md
 ```
 
 ---
 
-## curl 验收命令
+## 作业要求对照
 
-> **Windows PowerShell 注意**：`-d '{"title":"..."}'` 里的双引号会被 PowerShell 吞掉，实际发出去会变成 `{title:...}`，服务会返回 400。  
-> PowerShell 下请把 JSON 通过管道交给 `curl.exe --data-binary "@-"`，也就是下面第一段写法。
-
-### Windows PowerShell
-
-```powershell
-# 1. 列表
-curl.exe -s http://127.0.0.1:5000/api/tasks
-
-# 2. 新增
-'{"title":"学习 Flask","done":false}' | curl.exe -s -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" --data-binary "@-"
-
-# 3. 删除（把 1 换成上一步返回的 id）
-curl.exe -s -X DELETE http://127.0.0.1:5000/api/tasks/1
-
-# 4. 故意少传 title，应该是 400，不是 500
-'{"done":true}' | curl.exe -s -X POST http://127.0.0.1:5000/api/tasks -H "Content-Type: application/json" --data-binary "@-"
-```
-
-### Git Bash / macOS / Linux
-
-```bash
-# 1. 列表
-curl -s http://127.0.0.1:5000/api/tasks
-
-# 2. 新增
-curl -s -X POST http://127.0.0.1:5000/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"学习 Flask","done":false}'
-
-# 3. 删除（把 1 换成上一步返回的 id）
-curl -s -X DELETE http://127.0.0.1:5000/api/tasks/1
-
-# 4. 故意少传 title，应该是 400，不是 500
-curl -s -X POST http://127.0.0.1:5000/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"done":true}'
-```
-
-成功响应示例：
-
-```json
-{"code":201,"data":{"id":1,"title":"学习 Flask","done":false,"created_at":"2026-11-15T12:05:47+08:00"},"msg":"创建成功"}
-```
-
-失败响应示例：
-
-```json
-{"code":400,"data":null,"msg":"缺少字段: title"}
-```
+| 要求 | 实现 | 证据 |
+| --- | --- | --- |
+| 至少 2 个页面，能互相跳转 | 3 个 HTML 页面，导航、项目卡片、页脚互链 | `index.html` ↔ `project.html` ↔ `404.html` |
+| 使用语义化标签 | `header`、`nav`、`main`、`section`、`article`、`footer`，没有满屏 `div` | 查看任一 HTML 源码 |
+| 375px 不出现横向滚动条、文字不重叠 | 三页在 375px 下 `scrollWidth === innerWidth`；移动端标题单独放宽行高 | [手机端截图](docs/screenshots/mobile-home.png) · 自测记录见下 |
+| 至少 1 处 JS 交互，不能只靠 `:hover` | 筛选、菜单、计时器、`fetch` 共 4 处 | 见「页面与交互」 |
+| 图片压缩后上传，单张 ≤ 300 KB | 4 张 WebP：30.7 KB / 56.4 KB / 110.9 KB / 143.3 KB | `assets/img/` |
+| 控制台不能有红色报错 | 正常页面 0 条；404 页只有一条**故意**请求的 404 资源提示 | 见「自测记录」 |
+| 部署到 HTTPS 公网地址 | GitHub Pages（`main` 分支 / 根目录） | <https://lihaoze-star.github.io/web-phase4-lihaoze/> |
+| 抓包记录 3 条 + 故意 404 | 主文档、CSS、JS、`fetch` + 一个 404 | [docs/network-record.md](docs/network-record.md) |
 
 ---
 
-## 部署到 Render
+## 抓包记录（摘要）
 
-仓库已经带了 `render.yaml` 和 `Procfile`，不需要手写启动命令：
+一次本地实测（Edge 157，1440 × 1000，`http://127.0.0.1:8000`）：
 
-1. Render → **New → Web Service** → 连接 `web-phase4-api-lihaoze` 仓库。
-2. Render 会识别 `render.yaml`，使用 `pip install -r requirements.txt` 和 `gunicorn app:app`。
-3. 部署完成后，把 Render 给出的 HTTPS 地址填到前端仓库的 `js/config.js`：
+| 请求 | 路径 | 方法 | 状态码 | 耗时 | 传输大小 |
+| --- | --- | --- | --- | --- | --- |
+| 页面主文档 | `/` | GET | 200 | 8 ms | 13.4 KB |
+| 样式表 | `/css/style.css` | GET | 200 | 22 ms | 39.7 KB |
+| 脚本 | `/js/main.js` | GET | 200 | 27 ms | 5.3 KB |
+| 自己写的 `fetch` | `/data/now.json` | GET | 200 | 5 ms | 0.4 KB |
+| 故意请求不存在的路径 | `/this-page-does-not-exist.html` | GET | **404** | 7 ms | 3.6 KB |
 
-   ```js
-   baseUrl: "https://your-service.onrender.com"
+完整记录、复现步骤和原始事件见 [docs/network-record.md](docs/network-record.md)。
+
+404 截图：[电脑端](docs/screenshots/404.png) · [手机端](docs/screenshots/404-mobile.png)。
+
+---
+
+## 部署到 GitHub Pages
+
+已部署：仓库 [`lihaoze-star/web-phase4-lihaoze`](https://github.com/lihaoze-star/web-phase4-lihaoze) 的 `main` 分支根目录，GitHub Pages 自动构建。
+
+- **线上地址**：<https://lihaoze-star.github.io/web-phase4-lihaoze/>
+- **仓库地址**：<https://github.com/lihaoze-star/web-phase4-lihaoze>
+
+从零复现的步骤：
+
+1. 在 GitHub 新建公开仓库 `web-phase4-lihaoze`（不要勾选 README / .gitignore）。
+2. 在项目目录执行：
+
+   ```bash
+   git remote add origin https://github.com/lihaoze-star/web-phase4-lihaoze.git
+   git branch -M main
+   git push -u origin main
    ```
 
-4. 重新推送前端，任务页即可在线上读写这个 API。
+3. 打开仓库的 **Settings → Pages**：
+   - **Source** 选择 `Deploy from a branch`
+   - **Branch** 选择 `main`，目录选择 `/ (root)`
+   - 点击 **Save**
+4. 等 1 分钟左右，访问：
 
-> 免费实例长时间无请求会休眠，第一次打开可能慢几秒；这是平台行为，不是接口错误。
+   ```text
+   https://lihaoze-star.github.io/web-phase4-lihaoze/
+   ```
+
+> 三个页面都使用相对路径，所以部署在 `/web-phase4-lihaoze/` 这样的子路径下也能正常工作。
+> GitHub Pages 会自动把仓库根目录的 `404.html` 用作自定义错误页。
+
+### 其他平台（任选其一）
+
+- **Vercel**：New Project → 导入该仓库 → Framework Preset 选 `Other` → Output Directory 留空 → Deploy。
+- **Cloudflare Pages**：Connect to Git → 选择仓库 → Build command 留空 → Build output directory 填 `/` → Deploy。
+
+---
+
+## 自测记录
+
+- 日期：2026-11-13
+- 浏览器：Microsoft Edge 157（headless，CDP 采集）
+- 视口：电脑端 1440 × 1000；手机端 375 × 812（DPR 2）
+
+| 页面 | 375px `innerWidth` | 375px `scrollWidth` | 横向溢出元素 | 控制台红色报错 |
+| --- | --- | --- | --- | --- |
+| `/` | 375 | 375 | 0 | 0 |
+| `/project.html` | 375 | 375 | 0 | 0 |
+| `/this-page-does-not-exist.html` | 375 | 375 | 0 | 1 条（故意的 404 请求） |
+
+- 图片：3 张，全部带 `alt`；WebP 单张最大 143.3 KB。
+- 语义化标签：`header` / `nav` / `main` / `section` / `article` / `footer` 均已使用。
+- 交互自测：筛选切换、菜单开合、计时器 5 分钟开始→暂停→重置均正常；`fetch` 成功后「现在」卡片内容被更新。
+- 线上地址实测（2026-11-13）：首页 / 项目页返回 200，375px 下 `scrollWidth` 均为 375；正常页面 0 条控制台报错；`/this-page-does-not-exist.html` 返回 404 并显示自定义错误页。
+
+重新生成截图与抓包记录（可选，需要本机 Edge 与 Node 22+）：
+
+```bash
+# 终端 1：本地服务器
+python serve.py
+
+# 终端 2：启动带调试端口的 Edge
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" ^
+  --headless=new --remote-debugging-port=9222 ^
+  --user-data-dir=.tmp-browser/capture about:blank
+
+# 终端 3：采集
+node scripts/capture.mjs
+```
+
+---
+
+## 可以改的地方
+
+- 姓名、简介、社交链接：`index.html`、`project.html`、`404.html` 中的「李昊泽」与 `https://github.com/lihaoze-star`。
+- 「现在」卡片：修改 `data/now.json`，刷新页面即可看到变化。
+- 主题色与字体：`css/style.css` 顶部的 `:root` 变量。
+- 项目封面：替换 `assets/img/*.webp`，保持单张 ≤ 300 KB。
 
 ---
 
 ## 说明
 
-- 这是任务 2 的提交版本，重点是「接口能调通、错误是 JSON、数据真的落盘」。
-- 没有引入 ORM、蓝图、鉴权等额外内容，保持一周作业的可读范围。
-- 所有接口的 `code` 与 HTTP 状态码保持一致，便于用 `curl -i` 或浏览器 Network 面板核对。
-- 任务 3 的前端页面与三种状态截图在
-  <https://github.com/lihaoze-star/web-phase4-lihaoze> 的 `tasks.html` 与 `docs/task3.md`。
+- 本项目是第一阶段作业，页面内容为个人学习作品集。
+- 404 演示入口在 `project.html` 的「亲自走丢一次」，它会打开一个真实返回 404 的地址。
+- 截图与抓包数据由 `scripts/capture.mjs` 通过 Chrome DevTools Protocol 生成；`docs/network-capture.json` 保留了原始事件，方便核对。
