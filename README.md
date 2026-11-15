@@ -148,17 +148,43 @@ curl.exe -s http://127.0.0.1:5000/api/tasks
 
 ---
 
+## CORS
+
+任务 3 的前端和 API 不在同一个源，所以 Flask 在 `after_request` 里统一加响应头：
+
+```text
+Access-Control-Allow-Origin: <请求的 Origin>
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+Access-Control-Max-Age: 86400
+Vary: Origin
+```
+
+`OPTIONS` 预检由 Flask 自动处理，`after_request` 同样会给预检响应加头。错误响应也会带上这些头，避免 GET 修好了、POST 又失败。
+
+验证：
+
+```bash
+curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:5000/api/tasks
+```
+
+前端任务页与完整的 CORS 报错记录：
+<https://github.com/lihaoze-star/web-phase4-lihaoze/blob/main/docs/cors-record.md>
+
+---
+
 ## 测试
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-当前结果：**15 个测试全部通过**，覆盖：
+当前结果：**18 个测试全部通过**，覆盖：
 
 - 空列表、创建、查询、修改、删除
 - 缺字段、类型错误、空标题、超长标题、坏 JSON、错误 Content-Type
 - 404 / 405 / 500 都返回 JSON
+- 正常响应、错误响应、OPTIONS 预检都带 CORS 头
 - SQLite 中确实写入了数据
 
 测试使用独立的 `.tmp/tasks-test.db`，不会污染演示数据。
@@ -169,8 +195,10 @@ python -m unittest discover -s tests -v
 
 ```text
 web-phase4-api-lihaoze/
-├── app.py                       # Flask 应用：路由、校验、全局错误处理、SQLite
-├── requirements.txt             # Flask==3.1.3
+├── app.py                       # Flask 应用：路由、校验、全局错误处理、CORS、SQLite
+├── requirements.txt             # Flask + gunicorn
+├── Procfile                     # Render / Railway 启动命令
+├── render.yaml                  # Render 一键创建 Web Service
 ├── README.md
 ├── data/
 │   └── tasks.db                 # 运行时自动生成（已 gitignore）
@@ -184,7 +212,7 @@ web-phase4-api-lihaoze/
 │   ├── render_terminal.py       # 把记录渲染成终端样式 HTML
 │   └── capture_terminal.mjs     # 用 Edge 截图
 ├── tests/
-│   └── test_api.py              # 15 个 unittest
+│   └── test_api.py              # 18 个 unittest
 └── .gitignore
 ```
 
@@ -245,8 +273,28 @@ curl -s -X POST http://127.0.0.1:5000/api/tasks \
 
 ---
 
+## 部署到 Render
+
+仓库已经带了 `render.yaml` 和 `Procfile`，不需要手写启动命令：
+
+1. Render → **New → Web Service** → 连接 `web-phase4-api-lihaoze` 仓库。
+2. Render 会识别 `render.yaml`，使用 `pip install -r requirements.txt` 和 `gunicorn app:app`。
+3. 部署完成后，把 Render 给出的 HTTPS 地址填到前端仓库的 `js/config.js`：
+
+   ```js
+   baseUrl: "https://your-service.onrender.com"
+   ```
+
+4. 重新推送前端，任务页即可在线上读写这个 API。
+
+> 免费实例长时间无请求会休眠，第一次打开可能慢几秒；这是平台行为，不是接口错误。
+
+---
+
 ## 说明
 
 - 这是任务 2 的提交版本，重点是「接口能调通、错误是 JSON、数据真的落盘」。
 - 没有引入 ORM、蓝图、鉴权等额外内容，保持一周作业的可读范围。
 - 所有接口的 `code` 与 HTTP 状态码保持一致，便于用 `curl -i` 或浏览器 Network 面板核对。
+- 任务 3 的前端页面与三种状态截图在
+  <https://github.com/lihaoze-star/web-phase4-lihaoze> 的 `tasks.html` 与 `docs/task3.md`。

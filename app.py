@@ -31,6 +31,23 @@ app = Flask(__name__)
 app.json.ensure_ascii = False  # return readable Chinese instead of \uXXXX
 
 
+@app.after_request
+def add_cors_headers(response):
+    """Allow the separate frontend origin to call this API.
+
+    The fix for a CORS failure belongs on the server: the browser must see
+    Access-Control-Allow-* headers on both the real response and OPTIONS.
+    Do not disable web security in the browser instead.
+    """
+    origin = request.headers.get("Origin")
+    response.headers["Access-Control-Allow-Origin"] = origin or "*"
+    response.headers["Vary"] = "Origin"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Max-Age"] = "86400"
+    return response
+
+
 class ApiError(Exception):
     """A business error that should be rendered as a JSON envelope."""
 

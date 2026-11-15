@@ -127,6 +127,35 @@ class TaskApiTest(unittest.TestCase):
         response = self.client.post("/api/tasks/1")
         self.assert_envelope(response, 405, 405)
 
+    def test_cors_headers_on_normal_response(self):
+        origin = "https://lihaoze-star.github.io"
+        response = self.client.get("/api/tasks", headers={"Origin": origin})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], origin)
+        self.assertIn("POST", response.headers["Access-Control-Allow-Methods"])
+        self.assertIn("Content-Type", response.headers["Access-Control-Allow-Headers"])
+
+    def test_cors_headers_on_error_response(self):
+        origin = "https://lihaoze-star.github.io"
+        response = self.client.get("/api/not-found", headers={"Origin": origin})
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], origin)
+
+    def test_cors_preflight(self):
+        origin = "https://lihaoze-star.github.io"
+        response = self.client.options(
+            "/api/tasks",
+            headers={
+                "Origin": origin,
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        self.assertIn(response.status_code, (200, 204))
+        self.assertEqual(response.headers["Access-Control-Allow-Origin"], origin)
+        self.assertIn("POST", response.headers["Access-Control-Allow-Methods"])
+        self.assertIn("Content-Type", response.headers["Access-Control-Allow-Headers"])
+
     def test_unexpected_error_is_json(self):
         with patch.object(api, "connect", side_effect=RuntimeError("boom")):
             response = self.client.get("/api/tasks")
