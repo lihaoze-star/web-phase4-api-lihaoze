@@ -363,7 +363,14 @@ def upstream_error_message(status: int) -> str:
 
 
 def read_chat_messages() -> list[dict]:
-    payload = request.get_json(silent=True)
+    if request.is_json:
+        payload = request.get_json(silent=True)
+    else:
+        raw = request.get_data(as_text=True)
+        try:
+            payload = json.loads(raw) if raw.strip() else None
+        except json.JSONDecodeError:
+            payload = None
     if not isinstance(payload, dict):
         raise ApiError(400, "请求体必须是 JSON 对象")
     messages = payload.get("messages")

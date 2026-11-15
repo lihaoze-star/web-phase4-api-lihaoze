@@ -203,6 +203,16 @@ class TaskApiTest(unittest.TestCase):
         self.assertIn('"delta"', text)
         self.assertIn('"done": true', text)
 
+    def test_chat_accepts_text_plain_body(self):
+        with patch.dict(os.environ, {"CHAT_MOCK": "1"}, clear=False):
+            response = self.client.post(
+                "/api/chat",
+                data='{"messages":[{"role":"user","content":"你好"}]}',
+                content_type="text/plain",
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('"delta"', response.get_data(as_text=True))
+
     def test_chat_without_key_is_readable_json(self):
         with patch.dict(os.environ, {"CHAT_MOCK": "0", "LLM_API_KEY": ""}, clear=False):
             response = self.client.post(

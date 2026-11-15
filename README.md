@@ -214,6 +214,8 @@ curl -i -H "Origin: http://127.0.0.1:8000" http://127.0.0.1:5000/api/tasks
 
    错误也走 SSE：`data: {"error":"API Key 无效或已过期..."}`。
 
+> 线上环境用的 localhost.run 免费隧道偶尔不转发 `OPTIONS` 预检，所以前端聊天用 `Content-Type: text/plain` 发送 JSON（简单请求，不触发预检）；`read_chat_messages()` 同时接受 `application/json` 和 `text/plain`，校验逻辑不变。
+
 - **系统提示词**：`app.py` 的 `SYSTEM_PROMPT`，限定课程学习助手，不编造、不泄露 Key、不代写整份作业。
 - **上下文截断**：`trim_context()` 从最早的消息开始丢弃，总字符数不超过 `MAX_CONTEXT_CHARS`。
 - **停止生成**：前端 abort 后，生成器在 `GeneratorExit` / 写失败时关闭上游 `requests` 响应。
@@ -251,7 +253,7 @@ data: {"tool_call":{"name":"add_item","arguments":{"title":"明天交实验报�
 python -m unittest discover -s tests -v
 ```
 
-当前结果：**31 个测试全部通过**，覆盖：
+当前结果：**32 个测试全部通过**，覆盖：
 
 - 空列表、创建、查询、修改、删除
 - 缺字段、类型错误、空标题、超长标题、坏 JSON、错误 Content-Type
@@ -287,7 +289,7 @@ web-phase4-api-lihaoze/
 │   ├── render_terminal.py       # 把记录渲染成终端样式 HTML
 │   └── capture_terminal.mjs     # 用 Edge 截图
 ├── tests/
-│   └── test_api.py              # 31 个 unittest
+│   └── test_api.py              # 32 个 unittest
 └── .gitignore
 ```
 
